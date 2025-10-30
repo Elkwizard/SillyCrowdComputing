@@ -1,0 +1,210 @@
+@import url('https://fonts.googleapis.com/css2?family=Open+Sans:ital,wght@0,300..800;1,300..800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Comic+Neue:ital,wght@0,300;0,400;0,700;1,300;1,400;1,700&family=Open+Sans:ital,wght@0,300..800;1,300..800&display=swap');
+
+* {
+	margin: 0;
+	padding: 0;
+	box-sizing: border-box;
+	font-family: var(--casual);
+}
+
+:root {
+	--border-radius: 0.5em;
+	--polite: "Open Sans", sans-serif;
+	--casual: "Comic Neue", "Comic Sans MS", sans-serif;
+}
+
+body {
+	height: 100dvh;
+}
+
+.userColor, #key .tile {
+	width: 1em;
+	display: inline-block;
+	border: 2px black solid;
+}
+
+.tile {
+	display: block;
+	aspect-ratio: 1/1;
+	text-align: center;
+	background: currentColor;
+}
+
+.success::before {
+	content: "✅";
+}
+
+#view {
+	position: absolute;
+	width: min(75vh, 95vw);
+	display: grid;
+	transform: translateX(-50%);
+	left: 50%;
+	bottom: 0;
+
+	.tile {
+		margin-left: -0.5px;
+		margin-top: -0.5px;
+		border: 0.5px black solid;
+	}
+}
+
+#error {
+	display: none;
+	position: absolute;
+	left: 50%;
+	top: 1em;
+	transform: translateX(-50%);
+	z-index: 10000;
+	background: white;
+	border: 3px red solid;
+	color: red;
+	padding: 1em;
+	font-family: var(--polite);
+	max-width: min(30em, 80vw);
+}
+
+#errorStack {
+	padding-top: 1em;
+	font-family: monospace;
+	white-space: pre-wrap;
+}
+
+#rainbow {
+	background: linear-gradient(-45deg, red, orange, yellow, green, blue, purple);
+}
+
+.unknown {
+	background: linear-gradient(-45deg, #dfdfdf 49%, #d0d0d0 51%);
+}
+
+.progress {
+	z-index: 1000;
+	box-shadow: 0 0 9px currentColor;
+}
+
+#info, #key {
+	padding: 1em;
+	position: absolute;
+	background: #dfdfdf;
+	top: 0;
+}
+
+#controls {
+	padding-top: 1em;
+	display: flex;
+	flex-direction: row;
+	gap: 0.5em;
+	
+	button {
+		padding: 1em 2.5em;
+		margin-top: 0.5em;
+		font-weight: bold;
+		letter-spacing: 0.1em;
+		font-family: var(--polite);
+	}
+
+	#stop:disabled {
+		display: none;
+	}
+
+	#utilizationWrapper {
+		display: flex;
+		width: 11em;
+		flex-direction: column;
+		align-items: center;
+		justify-content: space-around;
+	}
+}
+
+#progress {
+	position: absolute;
+	left: 0;
+	bottom: 0;
+	transform: translateY(100%);
+	padding: 0.5em;
+	border: 1px black solid;
+	border-left: none;
+	border-bottom-right-radius: var(--border-radius);
+}
+
+#info {
+	left: 0;
+	border-bottom-right-radius: var(--border-radius);
+	max-width: 50%;
+	z-index: 100;
+
+	h1 {
+		font-size: min(6.5vw, 30px);
+		font-family: var(--polite);
+		padding-bottom: 0.3em;
+	}
+
+	.tile {
+		display: inline-block;
+		position: relative;
+		top: 0.15em;
+		margin-left: 0.1em;
+	}
+}
+
+#key {
+	right: 0;
+	width: 16em;
+	display: grid;
+	grid-template-columns: 1em auto;
+	column-gap: 0.5em;
+	border-bottom-left-radius: var(--border-radius);
+
+	.tile {
+		grid-column: 1;
+		justify-self: end;
+		position: relative;
+		top: 0.15em;
+	}
+
+	span {
+		grid-column: 2;
+	}
+}
+
+#offer {
+	text-decoration: underline;
+
+	&:hover::after {
+		content: " (if you send me an email at hbhays@uw.edu with your color code, " attr(data-user-color) ")";
+	}
+}
+
+@media only screen and (max-width: 900px) {
+	#info {
+		width: 100vw;
+		max-width: 100%;
+		border-bottom-right-radius: 0;
+	}
+
+	#key {
+		border-bottom-left-radius: 0;
+		border-top-right-radius: var(--border-radius);
+		top: unset;
+		bottom: 0;
+		left: 0;
+	}
+}
+
+@media only screen and (max-width: 500px) {
+	#controls {
+		flex-direction: column;
+		align-items: center;
+		gap: 1em;
+
+		> * {
+			width: 100% !important;
+		}
+
+		input, button {
+			width: 100%;
+		}
+	}
+}

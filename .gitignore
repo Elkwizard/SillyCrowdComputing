@@ -1,0 +1,4 @@
+.vscode
+.env
+*.wat
+chunksInitial.json

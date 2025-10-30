@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+	<base href="/compute/">
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Save the World!</title>
+	<script src="./index.js"></script>
+	<link href="./index.css" rel="stylesheet">
+	<link href="./favicon.png" rel="icon" type="image/png">
+</head>
+
+<body>
+	<div id="error">
+		Sorry! There's been an error. If you feel generous, please send the following text to me at <b>hbhays@uw.edu</b>.
+		<div id="errorStack"></div>
+	</div>
+	<div id="info">
+		<h1>I Hate This Math Problem!</h1>
+		<div>
+			Thank you for helping me solve this!
+			You can see your contributions to the search below, as tiles colored <div class="tile userColor"></div>.
+			If your tile has the solution, <span id="offer">you get $5!!*</span>
+			<div id="controls">
+				<button id="start">Compute!</button>
+				<button id="stop" disabled>Take a Break</button>
+				<div id="utilizationWrapper">
+					<div>CPU Utilization: <span id="utilization">100</span>%</div>
+					<input id="utilizationInput" type="range" min="0" max="100" value="100">
+				</div>
+			</div>
+		</div>
+		<div id="progress">
+			<span id="explored"></span> Explored!
+		</div>
+	</div>
+	<div id="view"></div>
+	<div id="key">
+		<div class="tile userColor"></div><span>= Your Contributions!</span>
+		<div class="tile" id="rainbow""></div><span>= Others' Contributions</span>
+		<div class="tile unknown"></div><span>= Unattributed</span> 
+	</div>
+</body>
+
+</html>
