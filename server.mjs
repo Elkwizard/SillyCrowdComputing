@@ -40,7 +40,6 @@ const compress = async (data, encodings) => {
 
 const state = JSON.parse(fs.readFileSync(CHUNKS_PATH, "utf-8"));
 
-
 const writeState = async () => {
 	await fs.promises.writeFile(CHUNKS_PATH, JSON.stringify(state), "utf-8");
 	console.log("Wrote State");
@@ -165,10 +164,10 @@ route("GET", "/explored", async writeResponse => {
 	await writeResponse(JSON.stringify(state.explored));
 });
 
-const MATCH_COMPUTE = /\/compute(\/(\w+\.\w+)?)?/;
+const MATCH_COMPUTE = /\/(compute(\/(\w+\.\w+)?)?)?/;
 
 route("GET", MATCH_COMPUTE, async (writeResponse, url) => {
-	const [,, subfile = "index.html"] = url.pathname.match(MATCH_COMPUTE);
+	const [,,, subfile = "index.html"] = url.pathname.match(MATCH_COMPUTE);
 	if (!WEB_CLIENT_FILES.has(subfile)) {
 		await writeResponse(null, 403);
 		return;
