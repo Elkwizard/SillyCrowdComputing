@@ -64,16 +64,18 @@ const nextChunk = () => {
 };
 
 const inProgress = new Map();
-
+const ongoingRequests = new Set();
 const close = async () => {
-	console.log("Authorized Closing");
+	console.log(`Authorized Closing, Waiting for ${ongoingRequests.size} Requests`);
+	server.close();
+
+	await Promise.all([...ongoingRequests]);
+	console.log("All Requests Completed");
+	server.closeAllConnections();
+
 	for (const { chunk } of inProgress.values())
 		state.unexplored.push(chunk);
-
 	await writeState();
-
-	server.close();
-	server.closeAllConnections();
 
 	console.log("Closed");
 	process.exit(0);
@@ -203,6 +205,9 @@ const handleRequest = async (req, res) => {
 		});
 		res.end(encoded);
 	};
+	
+	const { promise, resolve } = Promise.withResolvers();
+	ongoingRequests.add(promise);
 
 	try {
 		const url = new URL(`${PROTOCOL}://${HOST}:${PORT}${req.url}`);
@@ -218,6 +223,9 @@ const handleRequest = async (req, res) => {
 		logError(err.stack);
 		res.statusCode = 500;
 		res.end();
+	} finally {
+		ongoingRequests.delete(promise);
+		resolve();
 	}
 };
 
