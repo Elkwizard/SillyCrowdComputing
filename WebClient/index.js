@@ -115,16 +115,27 @@ const formatNum = num => {
 	return `${num.toFixed(2)} ${SUFFIXES[index]}`;
 };
 
-const updateView = async () => {
-	const explored = await API.getExplored();
-	
-	const shown = [...explored];
-	if (currentChunk) shown.push({
-		chunk: currentChunk,
-		out: "",
-		user: userColor,
-		progress: true
-	});
+const getUserStats = (user, explored) => {
+	const amount = explored.filter(chunk => chunk.user === user).length;
+	const percent = amount / explored.length * 100;
+	return {
+		amount,
+		percent: percent < 1 ? "<1%" : `${Math.round(percent)}%`
+	};
+};
+
+const setTileColor = (tile, color, stats) => {
+	tile.style.color = color;
+	tile.dataset.color = color;
+	if (stats) tile.dataset.stats = stats;
+};
+
+const updateGrid = (shown, explored) => {
+	const uniqueUsers = new Set(shown.map(chunk => chunk.user));
+	const userStats = new Map([...uniqueUsers].map(
+		user => [user, getUserStats(user, explored)]
+	));
+
 	const width = 1 + Math.max(0, ...shown.map(record => record.chunk[0]));
 	const height = 1 + Math.max(0, ...shown.map(record => record.chunk[1]));
 	
@@ -140,7 +151,8 @@ const updateView = async () => {
 		tile.style.gridColumn = `${x + 1}`;
 		tile.style.gridRow = `${height - y}`;
 		if (user) {
-			tile.style.color = user;
+			const { amount, percent } = userStats.get(user);
+			setTileColor(tile, user, percent === "<1%" ? amount : percent);
 		} else {
 			tile.classList.add("unknown");
 		}
@@ -149,15 +161,27 @@ const updateView = async () => {
 
 		view.appendChild(tile);
 	}
+};
+
+const updateView = async () => {
+	const explored = await API.getExplored();
+	
+	const shown = [...explored];
+	if (currentChunk) shown.push({
+		chunk: currentChunk,
+		out: "",
+		user: userColor,
+		progress: true
+	});
+
+	updateGrid(shown, explored);
 
 	{
 		const amount = explored.length;
-		const yourChunks = explored.filter(chunk => chunk.user === userColor).length;
 		const userCount = new Set(explored.map(chunk => chunk.user)).size;
-		const yourPercent = yourChunks / amount * 100;
-		const yourPercentStr = yourPercent < 1 ? "<1" : Math.round(yourPercent);
+		const yours = getUserStats(userColor, explored);
 		const stats = [
-			`${formatNum(amount)} Chunks Explored, ${yourChunks} by you (${yourPercentStr}%)`,
+			`${formatNum(amount)} Chunks Explored, ${yours.amount} by you (${yours.percent})`,
 			`${formatNum(amount * 5000 ** 2)} Values Checked!`,
 			`${userCount} Users`
 		];
@@ -190,12 +214,18 @@ const setComputeState = newComputing => {
 	if (!computing) currentChunk = null;
 };
 
+const handleMouse = event => {
+	const previous = document.querySelector("[data-hovered]");
+	if (previous) previous.toggleAttribute("data-hovered", false);
+	event.target.toggleAttribute("data-hovered", true);
+};
+
 const getUtilization = () => $("utilizationInput").value / threads.length;
 
 addEventListener("load", async () => {
 	try {
 		for (const tile of document.getElementsByClassName("userColor"))
-			tile.style.color = userColor;
+			setTileColor(tile, userColor);
 		$("offer").dataset.userColor = userColor;
 		await updateView();
 	
@@ -210,6 +240,10 @@ addEventListener("load", async () => {
 		$("utilizationInput").setAttribute("max", threads.length);
 		$("utilizationInput").value = localStorage.userUtilization ?? threads.length;
 		setComputeState(false);
+
+		addEventListener("pointerup", handleMouse);
+		addEventListener("pointerdown", handleMouse);
+		addEventListener("pointermove", handleMouse);
 		
 		const compute = async () => {
 			try {

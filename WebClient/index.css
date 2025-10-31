@@ -29,6 +29,31 @@ body {
 	aspect-ratio: 1/1;
 	text-align: center;
 	background: currentColor;
+	position: relative;
+
+	&[data-color] {
+		&[data-hovered]::after {
+			position: absolute;
+			content: attr(data-color);
+			background: white;
+			border: 1px black solid;
+			border-radius: var(--border-radius);
+			color: black;
+			left: 50%;
+			bottom: 10%;
+			width: min-content;
+			white-space: pre;
+			display: block;
+			padding: 0.25em;
+			z-index: 10000;
+			pointer-events: none;
+
+		}
+
+		&[data-hovered][data-stats]::after {
+			content: attr(data-color) " (" attr(data-stats) ")";
+		}
+	}
 }
 
 .success::before {
@@ -171,13 +196,8 @@ body {
 
 #offer {
 	text-decoration: underline;
-	background: none;
-	display: inline;
-	border: none;
-	font-size: inherit;
-	text-align: left;
 
-	&:hover::after, &[data-verbose]::after {
+	&[data-hovered]::after {
 		content: " (if you send me an email at hbhays@uw.edu with your color code, " attr(data-user-color) ")";
 	}
 }
