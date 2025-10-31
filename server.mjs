@@ -223,9 +223,6 @@ route("GET", MATCH_COMPUTE, async (writeResponse, url) => {
 });
 
 const handleRequest = async (req, res) => {
-	if (!req.url.startsWith("/compute"))
-		console.log(`${req.method} ${req.url}`);
-
 	const writeResponse = async (data, status = 200, headers = { }) => {
 		const encodings = (req.headers["accept-encoding"] ?? "").split(", ");
 		const { encoded, encoding } = await compress(data, encodings);
@@ -242,6 +239,10 @@ const handleRequest = async (req, res) => {
 
 	try {
 		const url = new URL(`${PROTOCOL}://${HOST}:${PORT}${req.url}`);
+
+		if (!url.pathname.startsWith("/compute"))
+			console.log(`${req.method} ${url.pathname}`, Object.fromEntries(url.searchParams));
+
 		for (const { method, matchPath, handle } of routes) {
 			if (method === req.method && matchPath(url.pathname)) {
 				await handle(writeResponse, url, req);
