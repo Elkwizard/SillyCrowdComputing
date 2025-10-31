@@ -8,11 +8,14 @@ import zlib from "node:zlib";
 import secret from "./secret.mjs";
 import MIMES from "./mimes.mjs";
 
+process.loadEnvFile();
+
 const CHUNK_SIZE = 5000;
 const MAX_TIMEOUT = 5 * 60 * 1000;
 const CHUNKS_PATH = "./chunks.json";
-const HOST = "localhost";
-const PORT = 443;
+const HOST = process.env.HOST;
+const PORT = +process.env.PORT;
+const PROTOCOL = process.env.PROTOCOL;
 const WEB_CLIENT_ROOT = "./WebClient";
 const WEB_CLIENT_FILES = new Set([
 	"index.html", "index.js", "worker.js",
@@ -24,8 +27,6 @@ const ENCODERS = new Map([
 	["zstd", promisify(zlib.zstdCompress)],
 	["gzip", promisify(zlib.gzip)]
 ]);
-
-const [,, PROTOCOL = "https"] = process.argv;
 
 const logError = msg => console.error(styleText("red", msg));
 const compress = async (data, encodings) => {
@@ -39,6 +40,21 @@ const compress = async (data, encodings) => {
 	}
 
 	return { encoding: "", encoded: data };
+};
+
+const wiggleColors = (json, user) => {
+	const wiggleMap = new Map();
+	return json.replace(/#([0-9a-fA-F]{6})/g, (full, hex) => {
+		if (full === user) return user;
+
+		if (!wiggleMap.has(hex)) {
+			const hash = crypto.hash("sha1", hex, "hex");
+			const [ , b,  , d,  , f] = hash;
+			const [a,  , c,  , e,  ] = hex;
+			wiggleMap.set(hex, "#" + a + b + c + d + e + f);
+		}
+		return wiggleMap.get(hex);
+	});
 };
 
 const state = JSON.parse(fs.readFileSync(CHUNKS_PATH, "utf-8"));
@@ -165,11 +181,13 @@ route("GET", "/close", async (writeResponse, { searchParams }) => {
 	}
 });
 
-route("GET", "/explored", async writeResponse => {
-	await writeResponse(JSON.stringify(state.explored));
+route("GET", "/explored", async (writeResponse, { searchParams }) => {
+	const user = searchParams.get("user");
+	await writeResponse(wiggleColors(JSON.stringify(state.explored), user));
 });
 
 route("GET", "/exploredafter", async (writeResponse, { searchParams }) => {
+	const user = searchParams.get("user");
 	const lastX = +searchParams.get("x");
 	const lastY = +searchParams.get("y");
 
@@ -179,7 +197,7 @@ route("GET", "/exploredafter", async (writeResponse, { searchParams }) => {
 	}
 
 	const after = state.explored.filter(({ chunk: [x, y] }) => x > lastX || (x === lastX && y > lastY));
-	await writeResponse(JSON.stringify(after), 200);
+	await writeResponse(wiggleColors(JSON.stringify(after), user), 200);
 });
 
 const MATCH_COMPUTE = /\/(compute(\/(\w+\.\w+)?)?)?/;
@@ -250,7 +268,7 @@ const server = PROTOCOL === "https" ? https.createServer({
 server.listen(PORT);
 server.on("listening", () => {
 	console.log(`Server started!`);
-	console.log(`View at ${PROTOCOL}://${HOST}:${PORT}/compute`);
+	console.log(`View at ${PROTOCOL}://${HOST}:${PORT}/`);
 });
 
 process.stdin.on("data", buffer => {

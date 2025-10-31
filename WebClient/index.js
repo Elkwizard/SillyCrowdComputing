@@ -7,6 +7,12 @@ const threads = new Array(navigator.hardwareConcurrency)
 const $ = document.getElementById.bind(document);
 
 class API {
+	static async fetch(endpoint, params = { }, options) {
+		return fetch(`${endpoint}?${new URLSearchParams(params)}`, options);
+	}
+	static async fetchJSON(...args) {
+		return (await API.fetch(...args)).json();
+	}
 	static async getNewChunk() {
 		const response = await fetch("/question");
 		if (response.status !== 200)
@@ -15,7 +21,7 @@ class API {
 	}
 	static async getExplored() {
 		if (!this.explored?.length) {
-			this.explored = await (await fetch("/explored")).json();
+			this.explored = await API.fetchJSON("/explored", { user: userColor });
 		} else {
 			const grid = [];
 			for (const { chunk: [x, y] } of this.explored)
@@ -40,7 +46,7 @@ class API {
 				y = nextY;
 			}
 			
-			const newChunks = await (await fetch(`/exploredafter?x=${x}&y=${y}`)).json();
+			const newChunks = await API.fetchJSON("/exploredafter", { x, y, user: userColor });
 			for (const chunk of newChunks) {
 				const [x, y] = chunk.chunk;
 				if (!grid[x]?.[y]) this.explored.push(chunk);
@@ -50,9 +56,7 @@ class API {
 		return this.explored;
 	}
 	static async sendResult(result, minerID) {
-		await fetch(`/answer?${new URLSearchParams({
-			minerID, user: userColor
-		})}`, {
+		await API.fetch("/answer", { minerID, user: userColor }, {
 			method: "POST",
 			body: JSON.stringify(result)
 		});
