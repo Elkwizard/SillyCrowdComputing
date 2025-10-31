@@ -1,4 +1,5 @@
 .vscode
 .env
 *.wat
+color.txt
 chunksInitial.json
