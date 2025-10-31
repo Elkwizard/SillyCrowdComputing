@@ -1,4 +1,4 @@
-import http from "node:http";
+import https from "node:https";
 import fs from "node:fs";
 import crypto from "node:crypto";
 import path from "node:path";
@@ -11,7 +11,7 @@ const CHUNK_SIZE = 5000;
 const MAX_TIMEOUT = 5 * 60 * 1000;
 const CHUNKS_PATH = "./chunks.json";
 const HOST = "localhost";
-const PORT = 80;
+const PORT = 443;
 const WEB_CLIENT_ROOT = "./WebClient";
 const WEB_CLIENT_FILES = new Set([
 	"index.html", "index.js", "worker.js",
@@ -187,7 +187,10 @@ route("GET", MATCH_COMPUTE, async (writeResponse, url) => {
 	await writeResponse(result, 200, { "content-type": mimeType });
 });
 
-const server = http.createServer(async (req, res) => {
+const server = https.createServer({
+	key: fs.readFileSync("ssl/privkey.pem"),
+	cert: fs.readFileSync("ssl/cert.pem")
+}, async (req, res) => {
 	if (!req.url.startsWith("/compute"))
 		console.log(`${req.method} ${req.url}`);
 
@@ -203,7 +206,7 @@ const server = http.createServer(async (req, res) => {
 	};
 
 	try {
-		const url = new URL(`http://localhost:${PORT}${req.url}`);
+		const url = new URL(`https://${HOST}:${PORT}${req.url}`);
 		for (const { method, matchPath, handle } of routes) {
 			if (method === req.method && matchPath(url.pathname)) {
 				await handle(writeResponse, url, req);
@@ -222,7 +225,7 @@ const server = http.createServer(async (req, res) => {
 server.listen(PORT);
 server.on("listening", () => {
 	console.log(`Server started!`);
-	console.log(`View at http://${HOST}:${PORT}/compute`);
+	console.log(`View at https://${HOST}:${PORT}/compute`);
 });
 
 process.stdin.on("data", buffer => {
