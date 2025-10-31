@@ -114,8 +114,19 @@ const updateView = async () => {
 		view.appendChild(tile);
 	}
 
-	$("progress").textContent = `${formatNum(amount)} Chunks Explored, ${formatNum(amount * 5000 ** 2)} Values Checked!`;
-	document.title = `Save the World! (${amount})`;
+	{
+		const yourChunks = explored.filter(chunk => chunk.user === userColor).length;
+		const userCount = new Set(explored.map(chunk => chunk.user)).size;
+		const yourPercent = yourChunks / amount * 100;
+		const yourPercentStr = yourPercent < 1 ? "<1" : Math.round(yourPercent);
+		const stats = [
+			`${formatNum(amount)} Chunks Explored, ${yourChunks} by you (${yourPercentStr}%)`,
+			`${formatNum(amount * 5000 ** 2)} Values Checked!`,
+			`${userCount} Users`
+		];
+		$("progress").innerText = stats.join("\n");
+		document.title = `Save the World! (${amount})`;
+	}
 };
 
 const generateColor = () => {
