@@ -3,7 +3,7 @@ import http from "node:http";
 import fs from "node:fs";
 import crypto from "node:crypto";
 import path from "node:path";
-import { promisify } from "node:util";
+import { promisify, styleText } from "node:util";
 import zlib from "node:zlib";
 import secret from "./secret.mjs";
 import MIMES from "./mimes.mjs";
@@ -27,7 +27,7 @@ const ENCODERS = new Map([
 
 const [,, PROTOCOL = "https"] = process.argv;
 
-const logError = msg => console.error(`\x1b[31m${msg}\x1b[0m`);
+const logError = msg => console.error(styleText("red", msg));
 const compress = async (data, encodings) => {
 	if (data !== null) {
 		for (const encoding of encodings) {
@@ -167,6 +167,19 @@ route("GET", "/close", async (writeResponse, { searchParams }) => {
 
 route("GET", "/explored", async writeResponse => {
 	await writeResponse(JSON.stringify(state.explored));
+});
+
+route("GET", "/exploredafter", async (writeResponse, { searchParams }) => {
+	const lastX = +searchParams.get("x");
+	const lastY = +searchParams.get("y");
+
+	if (isNaN(lastX) || isNaN(lastY)) {
+		await writeResponse("Invalid x and/or y", 400);
+		return;
+	}
+
+	const after = state.explored.filter(({ chunk: [x, y] }) => x > lastX || (x === lastX && y > lastY));
+	await writeResponse(JSON.stringify(after), 200);
 });
 
 const MATCH_COMPUTE = /\/(compute(\/(\w+\.\w+)?)?)?/;

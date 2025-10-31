@@ -1,6 +1,7 @@
 import http from "node:http";
 import fs from "node:fs";
 import child_process from "node:child_process";
+import { styleText } from "node:util";
 
 const generateColor = () => {
 	return "#" + new Array(6)
@@ -52,7 +53,7 @@ const sendResult = async (result, minerID) => {
 			return;
 		} catch (err) {
 			if (err.code !== "ECONNRESET") {
-				console.error(`\x1b[31m${err.stack}\x1b[0m`);
+				console.error(styleText("red", err.stack));
 			}
 		}
 	}

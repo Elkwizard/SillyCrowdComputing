@@ -6,27 +6,58 @@ const threads = new Array(navigator.hardwareConcurrency)
 
 const $ = document.getElementById.bind(document);
 
-const getExplored = async () => {
-	const response = await fetch("/explored");
-	const explored = await response.json();
-	return explored;
-};
+class API {
+	static async getNewChunk() {
+		const response = await fetch("/question");
+		if (response.status !== 200)
+			throw new Error(`Bad Status Code: ${response.status} (${response.statusText})`);
+		return response.json();
+	}
+	static async getExplored() {
+		if (!this.explored?.length) {
+			this.explored = await (await fetch("/explored")).json();
+		} else {
+			const grid = [];
+			for (const { chunk: [x, y] } of this.explored)
+				(grid[x] ??= [])[y] = true;
+			
+			let x = 0;
+			let y = 0;
+			for (let i = 0; i < this.explored.length; i++) {
+				let nextX = x;
+				let nextY = y;
+				
+				nextY++;
+				if (nextY >= nextX) {
+					nextY = 0;
+					nextX++;
+				}
 
-const getNewChunk = async () => {
-	const response = await fetch("/question");
-	if (response.status !== 200)
-		throw new Error(`Bad Status Code: ${response.status} (${response.statusText})`);
-	return response.json();
-};
+				if (!grid[nextX]?.[nextY])
+					break;
+				
+				x = nextX;
+				y = nextY;
+			}
+			
+			const newChunks = await (await fetch(`/exploredafter?x=${x}&y=${y}`)).json();
+			for (const chunk of newChunks) {
+				const [x, y] = chunk.chunk;
+				if (!grid[x]?.[y]) this.explored.push(chunk);
+			}
+		}
 
-const sendResult = async (result, minerID) => {
-	await fetch(`/answer?${new URLSearchParams({
-		minerID, user: userColor
-	})}`, {
-		method: "POST",
-		body: JSON.stringify(result)
-	});
-};
+		return this.explored;
+	}
+	static async sendResult(result, minerID) {
+		await fetch(`/answer?${new URLSearchParams({
+			minerID, user: userColor
+		})}`, {
+			method: "POST",
+			body: JSON.stringify(result)
+		});
+	}
+}
 
 const solveChunk = async (chunk, utilization) => {
 	console.log("start", chunk);
@@ -81,23 +112,24 @@ const formatNum = num => {
 };
 
 const updateView = async () => {
-	const explored = await getExplored();
-	const amount = explored.length;
-	if (currentChunk) explored.push({
+	const explored = await API.getExplored();
+	
+	const shown = [...explored];
+	if (currentChunk) shown.push({
 		chunk: currentChunk,
 		out: "",
 		user: userColor,
 		progress: true
 	});
-	const width = 1 + Math.max(0, ...explored.map(record => record.chunk[0]));
-	const height = 1 + Math.max(0, ...explored.map(record => record.chunk[1]));
+	const width = 1 + Math.max(0, ...shown.map(record => record.chunk[0]));
+	const height = 1 + Math.max(0, ...shown.map(record => record.chunk[1]));
 	
 	const view = $("view");
 	view.style.gridTemplateRows = `repeat(${height}, 1fr)`;
 	view.style.gridTemplateColumns = `repeat(${width}, 1fr)`;
 
 	view.innerHTML = "";
-	for (const { chunk: [x, y], user, progress, out } of explored) {
+	for (const { chunk: [x, y], user, progress, out } of shown) {
 		const tile = document.createElement("div");
 		tile.className = "tile";
 		if (progress) tile.classList.add("progress");
@@ -115,6 +147,7 @@ const updateView = async () => {
 	}
 
 	{
+		const amount = explored.length;
 		const yourChunks = explored.filter(chunk => chunk.user === userColor).length;
 		const userCount = new Set(explored.map(chunk => chunk.user)).size;
 		const yourPercent = yourChunks / amount * 100;
@@ -178,11 +211,11 @@ addEventListener("load", async () => {
 			try {
 				const utilization = getUtilization();
 				if (computing && utilization > 0) {
-					const { chunk, minerID } = await getNewChunk();
+					const { chunk, minerID } = await API.getNewChunk();
 					currentChunk = [chunk.x / chunk.width, chunk.y / chunk.height];
 					await updateView();
 					const answer = await solveChunk(chunk, utilization);
-					await sendResult(answer, minerID);
+					await API.sendResult(answer, minerID);
 					await updateView();
 				}
 				setTimeout(compute, 100);
