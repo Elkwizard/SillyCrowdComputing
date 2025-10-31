@@ -1,4 +1,4 @@
-const UPDATE_DELAY = 3000;
+const UPDATE_DELAY = 30000;
 
 const threads = new Array(navigator.hardwareConcurrency)
 	.fill()
@@ -29,6 +29,8 @@ const sendResult = async (result, minerID) => {
 };
 
 const solveChunk = async (chunk, utilization) => {
+	console.log("start", chunk);
+
 	const threadCount = Math.max(1, Math.min(
 		threads.length, Math.round(utilization * threads.length)
 	));
@@ -62,6 +64,7 @@ const solveChunk = async (chunk, utilization) => {
 	}
 	
 	const answers = await Promise.all(promises);
+	console.log("end", chunk, answers);
 	return answers.find(Boolean) ?? "";
 };
 
@@ -162,8 +165,15 @@ addEventListener("load", async () => {
 
 		compute();
 		
-		setInterval(() => {
-			if (!computing) updateView();
+		const viewId = setInterval(async () => {
+			if (!computing && document.visibilityState === "visible") {
+				try {
+					await updateView();
+				} catch (err) {
+					clearInterval(viewId);
+					showError(err);
+				}
+			}
 		}, UPDATE_DELAY);
 	} catch (err) {
 		showError(err);

@@ -2,6 +2,8 @@ import http from "node:http";
 import fs from "node:fs";
 import crypto from "node:crypto";
 import path from "node:path";
+import { promisify } from "node:util";
+import zlib from "node:zlib";
 import secret from "./secret.mjs";
 import MIMES from "./mimes.mjs";
 
@@ -15,10 +17,29 @@ const WEB_CLIENT_FILES = new Set([
 	"index.html", "index.js", "worker.js",
 	"mine.wasm", "favicon.png", "index.css"
 ]);
+const ENCODERS = new Map([
+	["br", promisify(zlib.brotliCompress)],
+	["deflate", promisify(zlib.deflateRaw)],
+	["zstd", promisify(zlib.zstdCompress)],
+	["gzip", promisify(zlib.gzip)]
+]);
 
 const logError = msg => console.error(`\x1b[31m${msg}\x1b[0m`);
+const compress = async (data, encodings) => {
+	if (data !== null) {
+		for (const encoding of encodings) {
+			if (ENCODERS.has(encoding)) {
+				const encoded = await ENCODERS.get(encoding)(data);
+				return { encoding, encoded };
+			}
+		}
+	}
+
+	return { encoding: "", encoded: data };
+};
 
 const state = JSON.parse(fs.readFileSync(CHUNKS_PATH, "utf-8"));
+
 
 const writeState = async () => {
 	await fs.promises.writeFile(CHUNKS_PATH, JSON.stringify(state), "utf-8");
@@ -61,7 +82,7 @@ const routes = [];
 /**
  * @param {string} method
  * @param {string | RegExp | (string) => boolean} matchPath
- * @param {(res: http.ServerResponse<http.IncomingMessage> & { req: http.IncomingMessage }, url?: URL, req?: http.IncomingMessage) => void} handle
+ * @param {(writeResponse: (data: string | Buffer | null, status: number, headers: http.OutgoingHttpHeaders) => Promise<void>, url?: URL, req?: http.IncomingMessage) => void} handle
  */
 const route = (method, matchPath, handle) => {
 	if (typeof matchPath === "string") {
@@ -74,7 +95,7 @@ const route = (method, matchPath, handle) => {
 	routes.push({ method, matchPath, handle });
 };
 
-route("GET", "/question", async res => {
+route("GET", "/question", async writeResponse => {
 	const chunk = nextChunk();
 	await writeState();
 	const timerID = setTimeout(async () => {
@@ -101,10 +122,10 @@ route("GET", "/question", async res => {
 		minerID
 	};
 
-	res.end(JSON.stringify(response));
+	await writeResponse(JSON.stringify(response));
 });
 
-route("POST", "/answer", async (res, { searchParams }, req) => {
+route("POST", "/answer", async (writeResponse, { searchParams }, req) => {
 	const user = searchParams.get("user");
 	const minerID = searchParams.get("minerID");
 	
@@ -115,7 +136,7 @@ route("POST", "/answer", async (res, { searchParams }, req) => {
 
 	if (!inProgress.has(minerID)) {
 		console.log("From Inactive User", minerID);
-		res.end();
+		await writeResponse(null, 400);
 		return;
 	}
 
@@ -127,31 +148,29 @@ route("POST", "/answer", async (res, { searchParams }, req) => {
 	console.log("Received Answer", { chunk, out, user });
 	state.explored.push({ chunk, out, user });
 	await writeState();
-	res.end();
+	await writeResponse(null);
 });
 
-route("GET", "/close", async (res, { searchParams }) => {
+route("GET", "/close", async (writeResponse, { searchParams }) => {
 	if (searchParams.get("secret") === secret) {
-		res.end();
+		await writeResponse(null);
 		await close();
 	} else {
-		console.log("Who do you think you are?");
-		res.statusCode = 401;
-		res.end();
+		console.error("Who do you think you are?");
+		await writeResponse(null, 401);
 	}
 });
 
-route("GET", "/explored", async res => {
-	res.end(JSON.stringify(state.explored));
+route("GET", "/explored", async writeResponse => {
+	await writeResponse(JSON.stringify(state.explored));
 });
 
 const MATCH_COMPUTE = /\/compute(\/(\w+\.\w+)?)?/;
 
-route("GET", MATCH_COMPUTE, async (res, url) => {
+route("GET", MATCH_COMPUTE, async (writeResponse, url) => {
 	const [,, subfile = "index.html"] = url.pathname.match(MATCH_COMPUTE);
 	if (!WEB_CLIENT_FILES.has(subfile)) {
-		res.statusCode = 403;
-		res.end();
+		await writeResponse(null, 403);
 		return;
 	}
 
@@ -161,31 +180,38 @@ route("GET", MATCH_COMPUTE, async (res, url) => {
 	const mimeType = MIMES.get(extension);
 
 	if (mimeType === undefined) {
-		res.statusCode = 500;
 		logError(`No MIME type for "${extension}"`);
-		res.end();
+		await writeResponse(null, 500);
 	}
 
-	res.setHeader("Content-Type", mimeType);
-	res.end(result);
+	await writeResponse(result, 200, { "content-type": mimeType });
 });
 
 const server = http.createServer(async (req, res) => {
-	if (!req.url.startsWith("/compute") && !req.url.startsWith("/explored"))
+	if (!req.url.startsWith("/compute"))
 		console.log(`${req.method} ${req.url}`);
 
+	const writeResponse = async (data, status = 200, headers = { }) => {
+		const encodings = (req.headers["accept-encoding"] ?? "").split(", ");
+		const { encoded, encoding } = await compress(data, encodings);
+		res.writeHead(status, {
+			...headers,
+			"content-encoding": encoding,
+			"access-control-allow-origin": "*"
+		});
+		res.end(encoded);
+	};
+
 	try {
-		res.setHeader("Access-Control-Allow-Origin", "*");
 		const url = new URL(`http://localhost:${PORT}${req.url}`);
 		for (const { method, matchPath, handle } of routes) {
 			if (method === req.method && matchPath(url.pathname)) {
-				await handle(res, url, req);
+				await handle(writeResponse, url, req);
 				return;
 			}
 		}
 
-		res.statusCode = 400;
-		res.end(`Unrecognized endpoint: ${req.method} ${req.url}`);
+		await writeResponse(`Unrecognized endpoint: ${req.method} ${req.url}`, 400);
 	} catch (err) {
 		logError(err.stack);
 		res.statusCode = 500;
