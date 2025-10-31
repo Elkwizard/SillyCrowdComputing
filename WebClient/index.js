@@ -68,8 +68,21 @@ const solveChunk = async (chunk, utilization) => {
 	return answers.find(Boolean) ?? "";
 };
 
+const formatNum = num => {
+	if (num < 1e6) return num.toLocaleString();
+	
+	const SUFFIXES = ["", "Million", "Billion", "Trillion", "Quadrillion"];
+	let index = -1;
+	while (num > 1000) {
+		num /= 1000;
+		index++;
+	}
+	return `${num.toFixed(2)} ${SUFFIXES[index]}`;
+};
+
 const updateView = async () => {
 	const explored = await getExplored();
+	const amount = explored.length;
 	if (currentChunk) explored.push({
 		chunk: currentChunk,
 		out: "",
@@ -101,8 +114,8 @@ const updateView = async () => {
 		view.appendChild(tile);
 	}
 
-	$("explored").textContent = explored.length;
-	document.title = `Save the World! (${explored.length})`;
+	$("progress").textContent = `${formatNum(amount)} Chunks Explored, ${formatNum(amount * 5000 ** 2)} Values Checked!`;
+	document.title = `Save the World! (${amount})`;
 };
 
 const generateColor = () => {
@@ -129,6 +142,8 @@ const setComputeState = newComputing => {
 	if (!computing) currentChunk = null;
 };
 
+const getUtilization = () => $("utilizationInput").value / threads.length;
+
 addEventListener("load", async () => {
 	try {
 		for (const tile of document.getElementsByClassName("userColor"))
@@ -138,17 +153,19 @@ addEventListener("load", async () => {
 	
 		$("start").addEventListener("click", () => setComputeState(true));
 		$("stop").addEventListener("click", () => setComputeState(false));
+		$("offer").addEventListener("click", () => $("offer").toggleAttribute("data-verbose"));
 		$("utilizationInput").addEventListener("input", event => {
-			$("utilization").textContent = Math.round(event.target.value);
+			$("utilization").textContent = Math.round(getUtilization() * 100);
 			localStorage.userUtilization = event.target.value;
 		});
-		$("utilizationInput").setAttribute("step", 100 / threads.length);
-		$("utilizationInput").value = localStorage.userUtilization ?? "100";
+		$("utilizationInput").setAttribute("min", 0);
+		$("utilizationInput").setAttribute("max", threads.length);
+		$("utilizationInput").value = localStorage.userUtilization ?? threads.length;
 		setComputeState(false);
 		
 		const compute = async () => {
 			try {
-				const utilization = $("utilizationInput").value / 100;
+				const utilization = getUtilization();
 				if (computing && utilization > 0) {
 					const { chunk, minerID } = await getNewChunk();
 					currentChunk = [chunk.x / chunk.width, chunk.y / chunk.height];

@@ -171,8 +171,13 @@ body {
 
 #offer {
 	text-decoration: underline;
+	background: none;
+	display: inline;
+	border: none;
+	font-size: inherit;
+	text-align: left;
 
-	&:hover::after {
+	&:hover::after, &[data-verbose]::after {
 		content: " (if you send me an email at hbhays@uw.edu with your color code, " attr(data-user-color) ")";
 	}
 }

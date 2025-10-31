@@ -21,19 +21,17 @@
 		<div>
 			Thank you for helping me solve this!
 			You can see your contributions to the search below, as tiles colored <div class="tile userColor"></div>.
-			If your tile has the solution, <span id="offer">you get $5!!*</span>
+			If your tile has the solution, <button id="offer">you get $5!!*</button>
 			<div id="controls">
 				<button id="start">Compute!</button>
 				<button id="stop" disabled>Take a Break</button>
 				<div id="utilizationWrapper">
 					<div>CPU Utilization: <span id="utilization">100</span>%</div>
-					<input id="utilizationInput" type="range" min="0" max="100" value="100">
+					<input id="utilizationInput" type="range" step="1" value="10" max="10">
 				</div>
 			</div>
 		</div>
-		<div id="progress">
-			<span id="explored"></span> Explored!
-		</div>
+		<div id="progress"></div>
 	</div>
 	<div id="view"></div>
 	<div id="key">

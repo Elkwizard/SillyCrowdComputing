@@ -1,4 +1,5 @@
 import https from "node:https";
+import http from "node:http";
 import fs from "node:fs";
 import crypto from "node:crypto";
 import path from "node:path";
@@ -23,6 +24,8 @@ const ENCODERS = new Map([
 	["zstd", promisify(zlib.zstdCompress)],
 	["gzip", promisify(zlib.gzip)]
 ]);
+
+const [,, PROTOCOL = "https"] = process.argv;
 
 const logError = msg => console.error(`\x1b[31m${msg}\x1b[0m`);
 const compress = async (data, encodings) => {
@@ -186,10 +189,7 @@ route("GET", MATCH_COMPUTE, async (writeResponse, url) => {
 	await writeResponse(result, 200, { "content-type": mimeType });
 });
 
-const server = https.createServer({
-	key: fs.readFileSync("ssl/privkey.pem"),
-	cert: fs.readFileSync("ssl/cert.pem")
-}, async (req, res) => {
+const handleRequest = async (req, res) => {
 	if (!req.url.startsWith("/compute"))
 		console.log(`${req.method} ${req.url}`);
 
@@ -205,7 +205,7 @@ const server = https.createServer({
 	};
 
 	try {
-		const url = new URL(`https://${HOST}:${PORT}${req.url}`);
+		const url = new URL(`${PROTOCOL}://${HOST}:${PORT}${req.url}`);
 		for (const { method, matchPath, handle } of routes) {
 			if (method === req.method && matchPath(url.pathname)) {
 				await handle(writeResponse, url, req);
@@ -219,12 +219,17 @@ const server = https.createServer({
 		res.statusCode = 500;
 		res.end();
 	}
-});
+};
+
+const server = PROTOCOL === "https" ? https.createServer({
+	key: fs.readFileSync("ssl/privkey.pem"),
+	cert: fs.readFileSync("ssl/cert.pem")
+}, handleRequest) : http.createServer(handleRequest);
 
 server.listen(PORT);
 server.on("listening", () => {
 	console.log(`Server started!`);
-	console.log(`View at https://${HOST}:${PORT}/compute`);
+	console.log(`View at ${PROTOCOL}://${HOST}:${PORT}/compute`);
 });
 
 process.stdin.on("data", buffer => {
