@@ -63,6 +63,7 @@ body {
 #view {
 	position: absolute;
 	width: min(75vh, 95vw);
+	aspect-ratio: 1/1;
 	display: grid;
 	transform: translateX(-50%);
 	left: 50%;
@@ -94,6 +95,26 @@ body {
 	padding-top: 1em;
 	font-family: monospace;
 	white-space: pre-wrap;
+}
+
+#hoverStats {
+	position: absolute;
+	z-index: 10000;
+	left: 50%;
+	top: 50%;
+	transform: translate(0, -100%);
+	background: white;
+	border: 1px black solid;
+	border-radius: var(--border-radius);
+	color: black;
+	width: min-content;
+	white-space: pre;
+	padding: 0.25em;
+	pointer-events: none;	
+}
+
+#others {
+	background: linear-gradient(45deg, #38f912 33%, #fbc192 34%, #fbc192 66%, #1287fd 67%);
 }
 
 #rainbow {
