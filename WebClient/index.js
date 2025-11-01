@@ -152,24 +152,51 @@ class Grid {
 	static MESSAGE_SIZE = 0.03;
 	static MESSAGE_FONT = "Comic Neue";
 	static HIGHLIGHT_COLOR = "yellow";
+	static MESSAGE = "You're working on this one!";
+	static FOUND_COLORS = ["red", "orange", "yellow", "green", "blue", "purple"];
 
 	constructor(canvas) {
 		this.canvas = canvas;
 		this.ctx = this.canvas.getContext("2d");
 		this.explored = [];
+
+		addEventListener("pointerup", this.handleMouse.bind(this));
+		addEventListener("pointerdown", this.handleMouse.bind(this));
+		addEventListener("pointermove", this.handleMouse.bind(this));
 	}
 	get rainbow() {
-		const colors = ["red", "orange", "yellow", "green", "blue", "purple"];
 		const gradient = ctx.createLinearGradient(
 			cx, cy, cx + chunkWidth, cy + chunkHeight
 		);
-		for (let i = 0; i < colors.length; i++) {
+		for (let i = 0; i < FOUND_COLORS.length; i++) {
 			gradient.addColorStop(
-				i / colors.length,
-				colors[i]
+				i / FOUND_COLORS.length,
+				FOUND_COLORS[i]
 			);
 		}
 		return gradient;
+	}
+	handleMouse(event) {
+		const user = this.getChunk(event.clientX, event.clientY);
+		const statWrapper = $("hoverStats")
+		statWrapper.style.display = user ? "block" : "none";
+		if (user) {
+			const stats = getUserStats(user, this.explored);;
+			const amount = stats.percent === "<1%" ? stats.amount : stats.percent;
+			statWrapper.textContent = `${user} (${amount})`;
+			statWrapper.style.left = event.clientX + "px";
+			statWrapper.style.top = event.clientY + "px";
+			const { x, width } = statWrapper.getBoundingClientRect();
+			statWrapper.style.left = Math.min(x, innerWidth - width) + "px";
+		}
+	}
+	getChunk(px, py) {
+		if (!this.grid) return null;
+
+		const { x, y, width, height } = this.canvas.getBoundingClientRect();
+		const cellX = Math.floor((px - x) / (width / this.columns));
+		const cellY = Math.floor((py - y) / (height / this.rows));
+		return this.grid[cellX]?.[this.rows - cellY - 1];
 	}
 	update(explored) {
 		this.explored = [...explored];
@@ -180,6 +207,10 @@ class Grid {
 			progress: true,
 			out: ""
 		});
+		this.grid = [];
+		for (const { chunk: [x, y], user } of this.shown)
+			(this.grid[x] ??= [])[y] = user;
+		
 		this.draw();
 	}
 	resize() {
@@ -209,17 +240,10 @@ class Grid {
 	draw() {
 		this.resize();
 		const { ctx } = this;
-		const { width, height, chunkWidth, chunkHeight } = this;
-
-		const messageSize = Grid.MESSAGE_SIZE * height;
-		const messageX = Grid.MESSAGE_X * width;
-		const messageY = Grid.MESSAGE_Y * height;
+		const { chunkWidth, chunkHeight } = this;
 
 		ctx.strokeStyle = "black";
 		ctx.lineWidth = Grid.DEFAULT_LW;
-		ctx.font = `${messageSize}px ${Grid.MESSAGE_FONT}`;
-		ctx.textBaseline = "middle";
-		ctx.textAlign = "right";
 
 		const grid = [];
 		for (const { chunk: [x, y], user, progress, out } of this.shown) {
@@ -232,144 +256,56 @@ class Grid {
 			ctx.fillRect(cx, cy, chunkWidth, chunkHeight);
 
 			if (progress) {
-				ctx.strokeStyle = "black";
-				ctx.lineWidth = Grid.PROGRESS_LW;
-				const x = cx + Grid.PROGRESS_LW / 2;
-				const y = cy + Grid.PROGRESS_LW / 2;
-				const w = chunkWidth - Grid.PROGRESS_LW;
-				const h = chunkHeight - Grid.PROGRESS_LW;
-
-				ctx.strokeRect(x, y, w, h);
-
-				ctx.strokeStyle = Grid.HIGHLIGHT_COLOR;
-				ctx.lineWidth = Grid.PROGRESS_LW / 2;
-				ctx.strokeRect(x, y, w, h);
-
-				ctx.strokeStyle = "black";
-				ctx.lineWidth = 4;
-				const mx = messageX;
-				const my = messageY;
-				const cpx = width;
-				const cpy = 0;
-				ctx.beginPath();
-				ctx.moveTo(mx + messageSize / 2, my);
-				ctx.bezierCurveTo(cpx, cpy, cpx, cpy, x + w / 2, y + h / 2);
-				ctx.stroke();
-				ctx.fillStyle = "black";
-				ctx.fillText(
-					"You're working on this one!",
-					mx, my
-				);
-
-				ctx.strokeStyle = "black";
-				ctx.lineWidth = Grid.DEFAULT_LW;
+				this.drawSignificance(cx, cy);
 			} else {
 				ctx.strokeRect(cx, cy, chunkWidth, chunkHeight);
 			}
 		}
 	}
+	drawSignificance(cx, cy) {
+		const { ctx, width, height, chunkWidth, chunkHeight } = this;
 
+		const messageSize = Grid.MESSAGE_SIZE * height;
+		const messageX = Grid.MESSAGE_X * width;
+		const messageY = Grid.MESSAGE_Y * height;
+
+		ctx.strokeStyle = "black";
+		ctx.lineWidth = Grid.PROGRESS_LW;
+		const x = cx + Grid.PROGRESS_LW / 2;
+		const y = cy + Grid.PROGRESS_LW / 2;
+		const w = chunkWidth - Grid.PROGRESS_LW;
+		const h = chunkHeight - Grid.PROGRESS_LW;
+
+		ctx.strokeRect(x, y, w, h);
+
+		ctx.strokeStyle = Grid.HIGHLIGHT_COLOR;
+		ctx.lineWidth = Grid.PROGRESS_LW / 2;
+		ctx.strokeRect(x, y, w, h);
+
+		ctx.strokeStyle = "black";
+		ctx.lineWidth = 4;
+		const mx = messageX;
+		const my = messageY;
+		const cpx = width;
+		const cpy = 0;
+		ctx.beginPath();
+		ctx.moveTo(mx + messageSize / 2, my);
+		ctx.bezierCurveTo(cpx, cpy, cpx, cpy, x + w / 2, y + h / 2);
+		ctx.stroke();
+
+		ctx.font = `${messageSize}px ${Grid.MESSAGE_FONT}`;
+		ctx.textBaseline = "middle";
+		ctx.textAlign = "right";
+		ctx.fillStyle = "black";
+		ctx.fillText(
+			Grid.MESSAGE,
+			mx, my
+		);
+
+		ctx.strokeStyle = "black";
+		ctx.lineWidth = Grid.DEFAULT_LW;
+	}
 }
-
-const updateGrid = (shown, explored) => {
-	const canvas = $("view");
-	const bounds = canvas.getBoundingClientRect();
-
-	const PROGRESS_LW = 4;
-	const DEFAULT_LW = 1;
-	const MESSAGE_X = 0.35 * bounds.width;
-	const MESSAGE_Y = 0.25 * bounds.height;
-	const MESSAGE_SIZE = 0.03 * bounds.height;
-	const MESSAGE_FONT = "Comic Neue";
-	const HIGHLIGHT_COLOR = "yellow";
-	const FOUND_COLORS = ["red", "orange", "yellow", "green", "blue", "purple"];
-
-	const ctx = canvas.getContext("2d");
-
-	// setup DPI scaling
-	const pixelWidth = Math.ceil(devicePixelRatio * bounds.width);
-	const pixelHeight = Math.ceil(devicePixelRatio * bounds.height);
-	if (pixelWidth !== canvas.width || pixelHeight !== canvas.height) {
-		canvas.width = pixelWidth;
-		canvas.height = pixelHeight;
-		ctx.scale(devicePixelRatio, devicePixelRatio);
-	}
-
-	ctx.clearRect(0, 0, Math.ceil(bounds.width), Math.ceil(bounds.height));
-
-	const columns = 1 + Math.max(0, ...shown.map(record => record.chunk[0]));
-	const rows = 1 + Math.max(0, ...shown.map(record => record.chunk[1]));
-
-	const chunkWidth = bounds.width / columns;
-	const chunkHeight = bounds.height / rows;
-
-	ctx.strokeStyle = "black";
-	ctx.lineWidth = DEFAULT_LW;
-	ctx.font = `${MESSAGE_SIZE}px ${MESSAGE_FONT}`;
-	ctx.textBaseline = "middle";
-	ctx.textAlign = "right";
-
-	const grid = [];
-	for (const { chunk: [x, y], user, progress, out } of shown) {
-		(grid[x] ??= [])[y] = user;
-
-		const cx = x * chunkWidth;
-		const cy = (rows - y - 1) * chunkHeight;
-
-		if (out) {
-			const gradient = ctx.createLinearGradient(
-				cx, cy, cx + chunkWidth, cy + chunkHeight
-			);
-			for (let i = 0; i < FOUND_COLORS.length; i++) {
-				gradient.addColorStop(
-					i / FOUND_COLORS.length,
-					FOUND_COLORS[i]
-				);
-			}
-			ctx.fillStyle = gradient;
-		} else {
-			ctx.fillStyle = user;
-		}
-
-		ctx.fillRect(cx, cy, chunkWidth, chunkHeight);
-
-		if (progress) {
-			ctx.strokeStyle = "black";
-			ctx.lineWidth = PROGRESS_LW;
-			const x = cx + PROGRESS_LW / 2;
-			const y = cy + PROGRESS_LW / 2;
-			const w = chunkWidth - PROGRESS_LW;
-			const h = chunkHeight - PROGRESS_LW;
-
-			ctx.strokeRect(x, y, w, h);
-
-			ctx.strokeStyle = HIGHLIGHT_COLOR;
-			ctx.lineWidth = PROGRESS_LW / 2;
-			ctx.strokeRect(x, y, w, h);
-
-			ctx.strokeStyle = "black";
-			ctx.lineWidth = 4;
-			const mx = MESSAGE_X;
-			const my = MESSAGE_Y;
-			const cpx = bounds.width;
-			const cpy = 0;
-			ctx.beginPath();
-			ctx.moveTo(mx + MESSAGE_SIZE / 2, my);
-			ctx.bezierCurveTo(cpx, cpy, cpx, cpy, x + w / 2, y + h / 2);
-			ctx.stroke();
-			ctx.fillStyle = "black";
-			ctx.fillText(
-				"You're working on this one!",
-				mx, my
-			);
-
-			ctx.strokeStyle = "black";
-			ctx.lineWidth = DEFAULT_LW;
-		} else {
-			ctx.strokeRect(cx, cy, chunkWidth, chunkHeight);
-		}
-	}
-};
 
 const updateStats = explored => {
 	const amount = explored.length;
@@ -399,8 +335,11 @@ const handleMouse = event => {
 
 addEventListener("load", async () => {
 	try {
-		for (const tile of document.getElementsByClassName("userColor"))
+		for (const tile of document.getElementsByClassName("userColor")) {
 			tile.style.color = user.color;
+			tile.dataset.info = user.color;
+		}
+
 		$("offer").dataset.userColor = user.color;
 
 		const syncToggleEnable = () => {
