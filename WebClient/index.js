@@ -145,8 +145,9 @@ const getUserStats = (user, explored) => {
 };
 
 class Grid {
-	static PROGRESS_LW = 4;
-	static DEFAULT_LW = 1;
+	static DEFAULT_LW = 50;
+	static PROGRESS_LW = 200;
+	static ARROW_LW = 4;
 	static MESSAGE_X = 0.35
 	static MESSAGE_Y = 0.25;
 	static MESSAGE_SIZE = 0.03;
@@ -175,6 +176,18 @@ class Grid {
 			);
 		}
 		return gradient;
+	}
+	get lwScale() {
+		return 1 / Math.max(this.columns, this.rows);
+	}
+	get progressLW() {
+		return Grid.PROGRESS_LW * this.lwScale;
+	}
+	get defaultLW() {
+		return Grid.DEFAULT_LW * this.lwScale;
+	}
+	get arrowLW() {
+		return Grid.ARROW_LW;
 	}
 	handleMouse(event) {
 		const user = this.getChunk(event.clientX, event.clientY);
@@ -243,7 +256,7 @@ class Grid {
 		const { chunkWidth, chunkHeight } = this;
 
 		ctx.strokeStyle = "black";
-		ctx.lineWidth = Grid.DEFAULT_LW;
+		ctx.lineWidth = this.defaultLW;
 
 		const grid = [];
 		for (const { chunk: [x, y], user, progress, out } of this.shown) {
@@ -263,27 +276,31 @@ class Grid {
 		}
 	}
 	drawSignificance(cx, cy) {
-		const { ctx, width, height, chunkWidth, chunkHeight } = this;
+		const {
+			ctx, width, height,
+			chunkWidth, chunkHeight,
+			progressLW, defaultLW, arrowLW
+		} = this;
 
 		const messageSize = Grid.MESSAGE_SIZE * height;
 		const messageX = Grid.MESSAGE_X * width;
 		const messageY = Grid.MESSAGE_Y * height;
 
 		ctx.strokeStyle = "black";
-		ctx.lineWidth = Grid.PROGRESS_LW;
-		const x = cx + Grid.PROGRESS_LW / 2;
-		const y = cy + Grid.PROGRESS_LW / 2;
-		const w = chunkWidth - Grid.PROGRESS_LW;
-		const h = chunkHeight - Grid.PROGRESS_LW;
+		ctx.lineWidth = progressLW;
+		const x = cx + progressLW / 2;
+		const y = cy + progressLW / 2;
+		const w = chunkWidth - progressLW;
+		const h = chunkHeight - progressLW;
 
 		ctx.strokeRect(x, y, w, h);
 
 		ctx.strokeStyle = Grid.HIGHLIGHT_COLOR;
-		ctx.lineWidth = Grid.PROGRESS_LW / 2;
+		ctx.lineWidth = progressLW / 2;
 		ctx.strokeRect(x, y, w, h);
 
 		ctx.strokeStyle = "black";
-		ctx.lineWidth = 4;
+		ctx.lineWidth = arrowLW;
 		const mx = messageX;
 		const my = messageY;
 		const cpx = width;
@@ -303,7 +320,7 @@ class Grid {
 		);
 
 		ctx.strokeStyle = "black";
-		ctx.lineWidth = Grid.DEFAULT_LW;
+		ctx.lineWidth = defaultLW;
 	}
 }
 
