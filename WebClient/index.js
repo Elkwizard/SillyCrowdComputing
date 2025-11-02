@@ -337,7 +337,7 @@ const updateStats = explored => {
 		`${userCount} Users`
 	];
 	$("progress").innerText = stats.join("\n");
-	document.title = `Save the World! (${amount})`;
+	document.title = `Save the World! (${formatNum(amount)})`;
 };
 
 const showError = err => {
