@@ -5,13 +5,13 @@ import crypto from "node:crypto";
 import path from "node:path";
 import { promisify, styleText } from "node:util";
 import zlib from "node:zlib";
-import secret from "./secret.mjs";
 import MIMES from "./mimes.mjs";
 
 process.loadEnvFile();
 
 const CHUNK_SIZE = 5000;
-const MAX_TIMEOUT = 5 * 60 * 1000;
+const MAX_TIMEOUT = 5 * 60 * 1000; // milliseconds
+const CACHE_DURATION = 60 * 60; // seconds
 const CHUNKS_PATH = "./chunks.json";
 const HOST = process.env.HOST;
 const PORT = +process.env.PORT;
@@ -210,7 +210,10 @@ route("GET", MATCH_COMPUTE, async (writeResponse, url) => {
 		await writeResponse(null, 500);
 	}
 
-	await writeResponse(result, 200, { "content-type": mimeType });
+	await writeResponse(result, 200, {
+		"content-type": mimeType,
+		"cache-control": `max-age=${CACHE_DURATION}`
+	});
 });
 
 const handleRequest = async (req, res) => {
@@ -231,7 +234,7 @@ const handleRequest = async (req, res) => {
 	try {
 		const url = new URL(`${PROTOCOL}://${HOST}:${PORT}${req.url}`);
 
-		if (!url.pathname.startsWith("/compute"))
+		// if (!url.pathname.startsWith("/compute"))
 			console.log(`${req.method} ${url.pathname}`, Object.fromEntries(url.searchParams));
 
 		for (const { method, matchPath, handle } of routes) {

@@ -1,6 +1,9 @@
 const UPDATE_DELAY = 30000;
 
 const $ = document.getElementById.bind(document);
+const show = el => el.classList.remove("hidden");
+const hide = el => el.classList.add("hidden");
+const toggle = el => el.classList.toggle("hidden");
 
 const formatNum = num => {
 	if (num < 1e6) return num.toLocaleString();
@@ -337,7 +340,6 @@ const updateStats = explored => {
 	document.title = `Save the World! (${amount})`;
 };
 
-
 const showError = err => {
 	document.title = "ERROR ):";
 	$("errorStack").innerText = `${err.stack}`;
@@ -375,15 +377,16 @@ addEventListener("load", async () => {
 		});
 
 		// details
-		$("viewDetails").addEventListener("click", () => $("details").classList.toggle("hidden"));
-		$("closeDetails").addEventListener("click", () => $("details").classList.add("hidden"));
+		$("viewDetails").addEventListener("click", () => toggle($("details")));
+		$("closeDetails").addEventListener("click", () => hide($("details")));
+		$("blurOverlay").addEventListener("click", () => hide($("details")));
 		addEventListener("keydown", event => {
-			if (event.key === "Escape") $("details").classList.add("hidden");
+			if (event.key === "Escape") hide($("details"));
 		});
-		// if (!localStorage.shownDetails) {
-		// 	localStorage.shownDetails = "true";
-			$("details").classList.remove("hidden");
-		// }
+		if (!localStorage.shownDetails) {
+			localStorage.shownDetails = "true";
+			show($("details"));
+		}
 
 		const solver = new Solver();
 		const grid = new Grid($("view"));
