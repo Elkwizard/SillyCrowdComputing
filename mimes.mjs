@@ -3,5 +3,6 @@ export default new Map([
 	[".css", "text/css"],
 	[".png", "image/png"],
 	[".html", "text/html"],
-	[".wasm", "application/wasm"]
+	[".wasm", "application/wasm"],
+	[".jpg", "image/jpeg"]
 ]);

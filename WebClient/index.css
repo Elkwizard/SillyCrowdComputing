@@ -12,6 +12,11 @@
 	--border-radius: 0.5em;
 	--polite: "Open Sans", sans-serif;
 	--casual: "Comic Neue", "Comic Sans MS", sans-serif;
+	--info-z: 1;
+	--hover-z: 2;
+	--overlay-z: 3;
+	--details-z: 4;
+	--error-z: 5;
 }
 
 body {
@@ -33,7 +38,7 @@ body {
 	background: currentColor;
 	position: relative;
 
-	&[data-hovered][data-info]::after {
+	&.hovered[data-info]::after {
 		content: attr(data-info);
 		left: 50%;
 		bottom: 10%;
@@ -60,7 +65,7 @@ body {
 	left: 50%;
 	top: 1em;
 	transform: translateX(-50%);
-	z-index: 10000;
+	z-index: var(--error-z);
 	background: white;
 	border: 3px red solid;
 	color: red;
@@ -80,9 +85,9 @@ body {
 	display: none;
 }
 
-#hoverStats, .tile[data-hovered][data-info]::after {
+#hoverStats, .tile.hovered[data-info]::after {
 	position: absolute;
-	z-index: 10000;
+	z-index: var(--hover-z);
 	background: white;
 	border: 1px black solid;
 	border-radius: var(--border-radius);
@@ -106,7 +111,7 @@ body {
 }
 
 .progress {
-	z-index: 1000;
+	z-index: var(--info-z);
 	box-shadow: 0 0 9px currentColor;
 }
 
@@ -124,11 +129,22 @@ body {
 	gap: 0.5em;
 	
 	button {
+		border: 1px black solid;
+		background: white;
 		padding: 1em 2.5em;
 		margin-top: 0.5em;
 		font-weight: bold;
 		letter-spacing: 0.1em;
 		font-family: var(--polite);
+		cursor: pointer;
+
+		&:hover {
+			background: #eee;
+		}
+
+		&:active {
+			background: #bbb;
+		}
 	}
 
 	#stop:disabled {
@@ -160,12 +176,16 @@ body {
 	left: 0;
 	border-bottom-right-radius: var(--border-radius);
 	max-width: 50%;
-	z-index: 100;
+	z-index: var(--info-z);
 
 	h1 {
 		font-size: min(6.5vw, 30px);
 		font-family: var(--polite);
 		padding-bottom: 0.3em;
+		display: flex;
+		flex-direction: row;
+		align-items: center;
+		gap: 0.4em;
 	}
 
 	.tile {
@@ -199,9 +219,95 @@ body {
 #offer {
 	text-decoration: underline;
 
-	&[data-hovered]::after {
+	&.hovered::after {
 		content: " (if you send me an email at hbhays@uw.edu with your color code, " attr(data-user-color) ")";
 	}
+}
+
+.hidden {
+	display: none;
+}
+
+#details {
+	position: absolute;
+	font-size: 1.2em;
+	left: 50%;
+	top: 50%;
+	transform: translate(-50%, -50%);
+	width: 35em;
+	max-width: 90vw;
+	max-height: 90vh;
+	background: white;
+	border: 1px black solid;
+	padding: 1em;
+	border-radius: var(--border-radius);
+	z-index: var(--details-z);
+
+	figure {
+		width: 100%;
+		margin-block: 1em;
+		padding: 0.5em;
+		background: #eee;
+		border-radius: var(--border-radius);
+
+		img {
+			width: 100%;
+			border-radius: calc(var(--border-radius) - 0.2em);
+		}
+
+		figcaption {
+			text-align: center;
+			font-size: 0.9em;
+			padding: 0.1em;
+			padding-bottom: 0.1em;
+		}
+	}
+}
+
+#blurOverlay {
+	display: none;
+}
+
+#details:not(.hidden) ~ #blurOverlay {
+	display: block;
+	position: absolute;
+	z-index: var(--overlay-z);
+	left: 0;
+	top: 0;
+	width: 100%;
+	height: 100%;
+	background: rgba(0, 0, 0, 0.7);
+	backdrop-filter: blur(0.2em);
+}
+
+#viewDetails, #closeDetails {
+	font-size: 1.2rem;
+	display: block;
+	padding: 0;
+	background: none;
+	width: 1.4em;
+	height: 1.4em;
+	background: white;
+	border: 2px black solid;
+	border-radius: 50%;
+	font-weight: bold;
+	cursor: pointer;
+	font-family: "Times New Roman", serif;
+
+	&:hover {
+		background: #eee;
+	}
+}
+
+#viewDetails {
+	font-style: italic;
+}
+
+#closeDetails {
+	position: absolute;
+	right: 0;
+	top: 0;
+	transform: translate(25%, -25%);
 }
 
 @media only screen and (max-width: 900px) {

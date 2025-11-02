@@ -19,7 +19,8 @@ const PROTOCOL = process.env.PROTOCOL;
 const WEB_CLIENT_ROOT = "./WebClient";
 const WEB_CLIENT_FILES = new Set([
 	"index.html", "index.js", "worker.js",
-	"mine.wasm", "favicon.png", "index.css"
+	"mine.wasm", "favicon.png", "index.css",
+	"puzzle.jpg"
 ]);
 const ENCODERS = new Map([
 	["br", promisify(zlib.brotliCompress)],

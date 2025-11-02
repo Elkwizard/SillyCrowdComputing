@@ -345,9 +345,9 @@ const showError = err => {
 };
 
 const handleMouse = event => {
-	const previous = document.querySelector("[data-hovered]");
-	if (previous) previous.toggleAttribute("data-hovered", false);
-	event.target.toggleAttribute("data-hovered", true);
+	const previous = document.getElementsByClassName("hovered")[0];
+	if (previous) previous.classList.remove("hovered");
+	event.target.classList.add("hovered");
 };
 
 addEventListener("load", async () => {
@@ -359,6 +359,7 @@ addEventListener("load", async () => {
 
 		$("offer").dataset.userColor = user.color;
 
+		// compute toggling
 		const syncToggleEnable = () => {
 			$("start").disabled = user.computing;
 			$("stop").disabled = !user.computing;
@@ -372,16 +373,22 @@ addEventListener("load", async () => {
 			user.currentChunk = null;
 			syncToggleEnable();
 		});
-		
+
+		// details
+		$("viewDetails").addEventListener("click", () => $("details").classList.toggle("hidden"));
+		$("closeDetails").addEventListener("click", () => $("details").classList.add("hidden"));
+		addEventListener("keydown", event => {
+			if (event.key === "Escape") $("details").classList.add("hidden");
+		});
+		// if (!localStorage.shownDetails) {
+		// 	localStorage.shownDetails = "true";
+			$("details").classList.remove("hidden");
+		// }
+
 		const solver = new Solver();
 		const grid = new Grid($("view"));
 
-		const updateView = async () => {
-			const explored = await API.getExplored();
-			grid.update(explored);
-			updateStats(explored);
-		};
-
+		// utilization
 		const getUtilization = () => $("utilizationInput").value / solver.concurrency;
 		$("utilizationInput").addEventListener("input", event => {
 			$("utilization").textContent = Math.round(getUtilization() * 100);
@@ -391,9 +398,17 @@ addEventListener("load", async () => {
 		$("utilizationInput").setAttribute("max", solver.concurrency);
 		$("utilizationInput").value = localStorage.userUtilization ?? solver.concurrency;
 
+		// hover events
 		addEventListener("pointerup", handleMouse);
 		addEventListener("pointerdown", handleMouse);
 		addEventListener("pointermove", handleMouse);
+
+		// view and main loop
+		const updateView = async () => {
+			const explored = await API.getExplored();
+			grid.update(explored);
+			updateStats(explored);
+		};
 
 		await updateView();
 
