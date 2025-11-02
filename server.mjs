@@ -172,16 +172,6 @@ route("POST", "/answer", async (writeResponse, { searchParams }, req) => {
 	await writeResponse(null);
 });
 
-route("GET", "/close", async (writeResponse, { searchParams }) => {
-	if (searchParams.get("secret") === secret) {
-		await writeResponse(null);
-		await close();
-	} else {
-		console.error("Who do you think you are?");
-		await writeResponse(null, 401);
-	}
-});
-
 route("GET", "/explored", async (writeResponse, { searchParams }) => {
 	const user = searchParams.get("user");
 	await writeResponse(wiggleColors(JSON.stringify(state.explored), user));
