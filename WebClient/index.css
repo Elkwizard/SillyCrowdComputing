@@ -8,6 +8,10 @@
 	font-family: var(--casual);
 }
 
+button {
+	color: black;
+}
+
 :root {
 	--border-radius: 0.5em;
 	--polite: "Open Sans", sans-serif;
@@ -179,7 +183,7 @@ body {
 	z-index: var(--info-z);
 
 	h1 {
-		font-size: min(6.5vw, 30px);
+		font-size: min(calc(7vw - 0.2rem), 30px);
 		font-family: var(--polite);
 		padding-bottom: 0.3em;
 		display: flex;
@@ -308,6 +312,26 @@ body {
 	right: 0;
 	top: 0;
 	transform: translate(25%, -25%);
+
+	&::before, &::after {
+		content: "";
+		position: absolute;
+		display: block;
+		left: 50%;
+		top: 50%;
+		width: 0.7em;
+		height: 0.1em;
+		background: black;
+		transform: translate(-50%, -50%) rotate(var(--angle));
+	}
+
+	&::before {
+		--angle: -45deg;
+	}
+
+	&::after {
+		--angle: 45deg;
+	}
 }
 
 @media only screen and (max-width: 900px) {
