@@ -47,7 +47,7 @@ class Solver {
 		const maxX = chunk.x + chunk.width - 1;
 		const maxY = chunk.y + chunk.height - 1;
 
-		const sectionWidth = Math.ceil((maxX - minY) / threadCount);
+		const sectionWidth = Math.ceil((maxX - minX + 1) / threadCount);
 
 		const promises = [];
 
@@ -267,9 +267,10 @@ class Grid {
 
 		ctx.clearRect(0, 0, width, height);
 
-		this.columns = 1 + Math.max(0, ...this.shown.map(record => record.chunk[0]));
-		this.rows = 1 + Math.max(0, ...this.shown.map(record => record.chunk[1]));
-
+		const columns = 1 + Math.max(0, ...this.shown.map(record => record.chunk[0]));
+		const rows = 1 + Math.max(0, ...this.shown.map(record => record.chunk[1]));
+		this.rows = this.columns = Math.max(columns, rows);
+		
 		this.chunkWidth = width / this.columns;
 		this.chunkHeight = height / this.rows;
 	}
@@ -353,7 +354,7 @@ const updateStats = (user, explored) => {
 	const yours = getUserStats(user, explored);
 	const stats = [
 		`${formatNum(amount)} Chunks Explored, ${yours.amount} by you (${yours.percent})`,
-		`${formatNum(amount * 5000 ** 2)} Values Checked!`,
+		`${formatNum(amount * 15000 ** 2)} Values Checked!`,
 		`${userCount} Users`
 	];
 	$("progress").innerText = stats.join("\n");

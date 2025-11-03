@@ -15,7 +15,7 @@ console.log(`Switched to ${process.cwd()}`);
 
 // setup & constants
 process.loadEnvFile();
-const CHUNK_SIZE = 5000;
+const CHUNK_SIZE = 15000;
 const MAX_TIMEOUT = 5 * 60 * 1000; // milliseconds
 const CACHE_DURATION = 60 * 60; // seconds
 const CHUNKS_PATH = "./chunks.json";

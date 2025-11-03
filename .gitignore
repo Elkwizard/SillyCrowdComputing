@@ -2,6 +2,5 @@
 .env
 *.wat
 color.txt
-chunksInitial.json
 ssl
 chunks.json
