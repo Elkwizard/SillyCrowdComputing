@@ -3,5 +3,5 @@
 *.wat
 color.txt
 chunksInitial.json
-**/ssl
+ssl
 chunks.json
