@@ -58,6 +58,15 @@ const wiggleColors = (json, user) => {
 	});
 };
 
+const serializeChunks = (chunks, user) => {
+	const simplified = chunks.map(chunk => ({
+		chunk: chunk.chunk,
+		user: chunk.user,
+		answer: !!chunk.out
+	}));
+	return wiggleColors(JSON.stringify(simplified), user);
+}
+
 const state = JSON.parse(fs.readFileSync(CHUNKS_PATH, "utf-8"));
 
 const writeState = async () => {
@@ -174,7 +183,7 @@ route("POST", "/answer", async (writeResponse, { searchParams }, req) => {
 
 route("GET", "/explored", async (writeResponse, { searchParams }) => {
 	const user = searchParams.get("user");
-	await writeResponse(wiggleColors(JSON.stringify(state.explored), user));
+	await writeResponse(serializeChunks(state.explored, user));
 });
 
 route("GET", "/exploredafter", async (writeResponse, { searchParams }) => {
@@ -188,7 +197,7 @@ route("GET", "/exploredafter", async (writeResponse, { searchParams }) => {
 	}
 
 	const after = state.explored.filter(({ chunk: [x, y] }) => x > lastX || (x === lastX && y > lastY));
-	await writeResponse(wiggleColors(JSON.stringify(after), user), 200);
+	await writeResponse(serializeChunks(after, user), 200);
 });
 
 const MATCH_COMPUTE = /\/(compute(\/(\w+\.\w+)?)?)?/;
@@ -234,8 +243,7 @@ const handleRequest = async (req, res) => {
 	try {
 		const url = new URL(`${PROTOCOL}://${HOST}:${PORT}${req.url}`);
 
-		// if (!url.pathname.startsWith("/compute"))
-			console.log(`${req.method} ${url.pathname}`, Object.fromEntries(url.searchParams));
+		console.log(`${req.method} ${url.pathname}`, Object.fromEntries(url.searchParams));
 
 		for (const { method, matchPath, handle } of routes) {
 			if (method === req.method && matchPath(url.pathname)) {

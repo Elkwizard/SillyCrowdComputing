@@ -36,6 +36,7 @@ class Solver {
 	async solveChunk(chunk, utilization) {
 		const { threads } = this;
 		console.log("start", chunk);
+		console.time("solveChunk()");
 
 		const threadCount = Math.max(1, Math.min(
 			threads.length, Math.round(utilization * threads.length)
@@ -70,7 +71,8 @@ class Solver {
 		}
 
 		const answers = await Promise.all(promises);
-		console.log("end", chunk, answers);
+		console.timeEnd("solveChunk()");
+		console.log("end", answers);
 		return answers.find(Boolean) ?? "";
 	}
 }
@@ -86,7 +88,7 @@ class API {
 			chunk: this.activeChunk,
 			user: this.user,
 			progress: true,
-			out: ""
+			answer: false
 		};
 	}
 	async getNewChunk() {
@@ -148,7 +150,8 @@ class API {
 		return response;
 	}
 	static async fetchJSON(...args) {
-		return (await API.fetch(...args)).json();
+		const text = await (await API.fetch(...args)).text();
+		return JSON.parse(text);
 	}
 }
 
@@ -171,28 +174,15 @@ class Grid {
 	static MESSAGE_FONT = "Comic Neue";
 	static HIGHLIGHT_COLOR = "yellow";
 	static MESSAGE = "You're working on this one!";
-	static FOUND_COLORS = ["red", "orange", "yellow", "green", "blue", "purple"];
-
+	
 	constructor(canvas) {
 		this.canvas = canvas;
 		this.ctx = this.canvas.getContext("2d");
 		this.explored = [];
-
+		
 		addEventListener("pointerup", this.handleMouse.bind(this));
 		addEventListener("pointerdown", this.handleMouse.bind(this));
 		addEventListener("pointermove", this.handleMouse.bind(this));
-	}
-	get rainbow() {
-		const gradient = ctx.createLinearGradient(
-			cx, cy, cx + chunkWidth, cy + chunkHeight
-		);
-		for (let i = 0; i < FOUND_COLORS.length; i++) {
-			gradient.addColorStop(
-				i / FOUND_COLORS.length,
-				FOUND_COLORS[i]
-			);
-		}
-		return gradient;
 	}
 	get lwScale() {
 		return 1 / Math.max(this.columns, this.rows);
@@ -206,14 +196,35 @@ class Grid {
 	get arrowLW() {
 		return Grid.ARROW_LW;
 	}
+	getRainbow(cx, cy) {
+		const { ctx, chunkWidth, chunkHeight } = this;
+
+		const RAINBOW = ["red", "orange", "yellow", "green", "blue", "purple"];
+		
+		const gradient = ctx.createLinearGradient(
+			cx, cy, cx + chunkWidth, cy + chunkHeight
+		);
+		for (let i = 0; i < RAINBOW.length; i++)
+			gradient.addColorStop(
+				i / RAINBOW.length,
+				RAINBOW[i]
+			);
+		
+		return gradient;
+	}
 	handleMouse(event) {
-		const user = this.getChunk(event.clientX, event.clientY);
+		const chunk = this.getChunk(event.clientX, event.clientY);
 		const statWrapper = $("hoverStats")
-		statWrapper.style.display = user ? "block" : "none";
-		if (user) {
+		statWrapper.style.display = chunk ? "block" : "none";
+		if (chunk) {
+			const { user, answer } = chunk;
 			const stats = getUserStats(user, this.explored);;
 			const amount = stats.percent === "<1%" ? stats.amount : stats.percent;
-			statWrapper.textContent = `${user} (${amount})`;
+			if (answer) {
+				statWrapper.textContent = `THE ANSWER!!! (${user}, ${amount})`;
+			} else {
+				statWrapper.textContent = `${user} (${amount})`;
+			}
 			statWrapper.style.left = event.clientX + "px";
 			statWrapper.style.top = event.clientY + "px";
 			const { x, width } = statWrapper.getBoundingClientRect();
@@ -233,8 +244,8 @@ class Grid {
 		this.shown = [...this.explored];
 		if (activeChunk) this.shown.push(activeChunk);
 		this.grid = [];
-		for (const { chunk: [x, y], user } of this.shown)
-			(this.grid[x] ??= [])[y] = user;
+		for (const { chunk: [x, y], user, answer } of this.shown)
+			(this.grid[x] ??= [])[y] = { user, answer };
 		
 		this.draw();
 	}
@@ -271,13 +282,13 @@ class Grid {
 		ctx.lineWidth = this.defaultLW;
 
 		const grid = [];
-		for (const { chunk: [x, y], user, progress, out } of this.shown) {
+		for (const { chunk: [x, y], user, progress, answer } of this.shown) {
 			(grid[x] ??= [])[y] = user;
 
 			const cx = x * chunkWidth;
 			const cy = (this.rows - y - 1) * chunkHeight;
 
-			ctx.fillStyle = out ? this.rainbow : user;
+			ctx.fillStyle = answer ? this.getRainbow(cx, cy) : user;
 			ctx.fillRect(cx, cy, chunkWidth, chunkHeight);
 
 			if (progress) {

@@ -103,11 +103,11 @@ body {
 }
 
 #others {
-	background: linear-gradient(45deg, #38f912 33%, #fbc192 34%, #fbc192 66%, #1287fd 67%);
+	background: linear-gradient(135deg, #38f912 33%, #fbc192 34%, #fbc192 66%, #1287fd 67%);
 }
 
 #rainbow {
-	background: linear-gradient(-45deg, red, orange, yellow, green, blue, purple);
+	background: linear-gradient(135deg, red, orange, yellow, green, blue, purple);
 }
 
 .unknown {
