@@ -234,18 +234,23 @@ body {
 
 #details {
 	position: absolute;
-	font-size: 1.2em;
 	left: 50%;
 	top: 50%;
 	transform: translate(-50%, -50%);
+	z-index: var(--details-z);
+}
+
+#detailsContent {
+	font-size: 1.2em;
 	width: 35em;
 	max-width: 90vw;
 	max-height: 90vh;
+	padding: 1em;
+	overflow-x: hidden;
+	overflow-y: auto;
 	background: white;
 	border: 1px black solid;
-	padding: 1em;
 	border-radius: var(--border-radius);
-	z-index: var(--details-z);
 
 	figure {
 		width: 100%;
@@ -253,12 +258,12 @@ body {
 		padding: 0.5em;
 		background: #eee;
 		border-radius: var(--border-radius);
-
+	
 		img {
 			width: 100%;
 			border-radius: calc(var(--border-radius) - 0.2em);
 		}
-
+	
 		figcaption {
 			text-align: center;
 			font-size: 0.9em;
