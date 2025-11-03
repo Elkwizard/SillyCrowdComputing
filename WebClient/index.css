@@ -142,12 +142,18 @@ body {
 		font-family: var(--polite);
 		cursor: pointer;
 
-		&:hover {
-			background: #eee;
+		&:not(:disabled) {
+			&:hover {
+				background: #eee;
+			}
+	
+			&:active {
+				background: #bbb;
+			}
 		}
 
-		&:active {
-			background: #bbb;
+		&:disabled {
+			opacity: 0.3;
 		}
 	}
 

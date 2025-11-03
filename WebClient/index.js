@@ -24,12 +24,6 @@ const generateColor = () => {
 		.join("");
 };
 
-const user = {
-	color: localStorage.userColor ??= generateColor(),
-	currentChunk: null,
-	computing: false
-};
-
 class Solver {
 	constructor() {
 		this.threads = new Array(navigator.hardwareConcurrency)
@@ -82,21 +76,28 @@ class Solver {
 }
 
 class API {
-	static async fetch(endpoint, params = {}, options) {
-		return fetch(`${endpoint}?${new URLSearchParams(params)}`, options);
+	constructor(user) {
+		this.user = user;
 	}
-	static async fetchJSON(...args) {
-		return (await API.fetch(...args)).json();
+	getActiveChunk() {
+		if (!this.activeChunk) return null;
+		
+		return {
+			chunk: this.activeChunk,
+			user: this.user,
+			progress: true,
+			out: ""
+		};
 	}
-	static async getNewChunk() {
-		const response = await fetch("/question");
-		if (response.status !== 200)
-			throw new Error(`Bad Status Code: ${response.status} (${response.statusText})`);
-		return response.json();
+	async getNewChunk() {
+		const { chunk, minerID } = await API.fetchJSON("/question");
+		this.minerID = minerID;
+		this.activeChunk = [chunk.x / chunk.width, chunk.y / chunk.height];
+		return chunk;
 	}
-	static async getExplored() {
+	async getExplored() {
 		if (!this.explored?.length) {
-			this.explored = await API.fetchJSON("/explored", { user: user.color });
+			this.explored = await API.fetchJSON("/explored", { user: this.user });
 		} else {
 			const grid = [];
 			for (const { chunk: [x, y] } of this.explored)
@@ -121,7 +122,7 @@ class API {
 				y = nextY;
 			}
 
-			const newChunks = await API.fetchJSON("/exploredafter", { x, y, user: user.color });
+			const newChunks = await API.fetchJSON("/exploredafter", { x, y, user: this.user });
 			for (const chunk of newChunks) {
 				const [x, y] = chunk.chunk;
 				if (!grid[x]?.[y]) this.explored.push(chunk);
@@ -130,11 +131,24 @@ class API {
 
 		return this.explored;
 	}
-	static async sendResult(result, minerID) {
-		await API.fetch("/answer", { minerID, user: user.color }, {
+	async sendResult(result) {
+		await API.fetch("/answer", {
+			minerID: this.minerID,
+			user: this.user
+		}, {
 			method: "POST",
 			body: JSON.stringify(result)
 		});
+		this.activeChunk = null;
+	}
+	static async fetch(endpoint, params = { }, options) {
+		const response = await fetch(`${endpoint}?${new URLSearchParams(params)}`, options);
+		if (response.status !== 200)
+			throw new Error(`Bad status code ${response.status} (${response.statusText})`);
+		return response;
+	}
+	static async fetchJSON(...args) {
+		return (await API.fetch(...args)).json();
 	}
 }
 
@@ -214,15 +228,10 @@ class Grid {
 		const cellY = Math.floor((py - y) / (height / this.rows));
 		return this.grid[cellX]?.[this.rows - cellY - 1];
 	}
-	update(explored) {
+	update(activeChunk, explored) {
 		this.explored = [...explored];
 		this.shown = [...this.explored];
-		if (user.currentChunk) this.shown.push({
-			chunk: user.currentChunk,
-			color: user.color,
-			progress: true,
-			out: ""
-		});
+		if (activeChunk) this.shown.push(activeChunk);
 		this.grid = [];
 		for (const { chunk: [x, y], user } of this.shown)
 			(this.grid[x] ??= [])[y] = user;
@@ -327,10 +336,10 @@ class Grid {
 	}
 }
 
-const updateStats = explored => {
+const updateStats = (user, explored) => {
 	const amount = explored.length;
 	const userCount = new Set(explored.map(chunk => chunk.user)).size;
-	const yours = getUserStats(user.color, explored);
+	const yours = getUserStats(user, explored);
 	const stats = [
 		`${formatNum(amount)} Chunks Explored, ${yours.amount} by you (${yours.percent})`,
 		`${formatNum(amount * 5000 ** 2)} Values Checked!`,
@@ -354,27 +363,26 @@ const handleMouse = event => {
 
 addEventListener("load", async () => {
 	try {
+		const solver = new Solver();
+		const api = new API(localStorage.userColor ??= generateColor());
+		const grid = new Grid($("view"), api);
+
 		for (const tile of document.getElementsByClassName("userColor")) {
-			tile.style.color = user.color;
-			tile.dataset.info = user.color;
+			tile.style.color = api.user;
+			tile.dataset.info = api.user;
 		}
 
-		$("offer").dataset.userColor = user.color;
+		$("offer").dataset.userColor = api.user;
 
 		// compute toggling
-		const syncToggleEnable = () => {
-			$("start").disabled = user.computing;
-			$("stop").disabled = !user.computing;
+		let computing = false;
+		const setComputing = newComputing => {
+			computing = newComputing;
+			$("start").disabled = computing;
+			$("stop").disabled = !computing;
 		};
-		$("start").addEventListener("click", () => {
-			user.computing = true;
-			syncToggleEnable();
-		});
-		$("stop").addEventListener("click", () => {
-			user.computing = false;
-			user.currentChunk = null;
-			syncToggleEnable();
-		});
+		$("start").addEventListener("click", () => setComputing(true));
+		$("stop").addEventListener("click", () => setComputing(false));
 
 		// details
 		$("viewDetails").addEventListener("click", () => toggle($("details")));
@@ -387,9 +395,6 @@ addEventListener("load", async () => {
 			localStorage.shownDetails = "true";
 			show($("details"));
 		}
-
-		const solver = new Solver();
-		const grid = new Grid($("view"));
 
 		// utilization
 		const getUtilization = () => $("utilizationInput").value / solver.concurrency;
@@ -408,9 +413,10 @@ addEventListener("load", async () => {
 
 		// view and main loop
 		const updateView = async () => {
-			const explored = await API.getExplored();
-			grid.update(explored);
-			updateStats(explored);
+			const explored = await api.getExplored();
+			const activeChunk = api.getActiveChunk();
+			grid.update(activeChunk, explored);
+			updateStats(api.user, explored);
 		};
 
 		await updateView();
@@ -418,12 +424,11 @@ addEventListener("load", async () => {
 		const compute = async () => {
 			try {
 				const utilization = getUtilization();
-				if (user.computing && utilization > 0) {
-					const { chunk, minerID } = await API.getNewChunk();
-					user.currentChunk = [chunk.x / chunk.width, chunk.y / chunk.height];
+				if (computing && utilization > 0) {
+					const chunk = await api.getNewChunk();
 					await updateView();
 					const answer = await solver.solveChunk(chunk, utilization);
-					await API.sendResult(answer, minerID);
+					await api.sendResult(answer);
 					await updateView();
 				}
 				setTimeout(compute, 100);
@@ -435,7 +440,7 @@ addEventListener("load", async () => {
 		compute();
 
 		const viewId = setInterval(async () => {
-			if (!user.computing && document.visibilityState === "visible") {
+			if (!computing && document.visibilityState === "visible") {
 				try {
 					await updateView();
 				} catch (err) {
