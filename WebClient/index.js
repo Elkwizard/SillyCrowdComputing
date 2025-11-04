@@ -410,13 +410,17 @@ addEventListener("load", async () => {
 
 		// utilization
 		const getUtilization = () => $("utilizationInput").value / solver.concurrency;
-		$("utilizationInput").addEventListener("input", event => {
+		const syncUtilizationView = () => {
 			$("utilization").textContent = Math.round(getUtilization() * 100);
+		};
+		$("utilizationInput").addEventListener("input", event => {
+			syncUtilizationView();
 			localStorage.userUtilization = event.target.value;
 		});
 		$("utilizationInput").setAttribute("min", 0);
 		$("utilizationInput").setAttribute("max", solver.concurrency);
 		$("utilizationInput").value = localStorage.userUtilization ?? solver.concurrency;
+		syncUtilizationView();
 
 		// hover events
 		addEventListener("pointerup", handleMouse);
