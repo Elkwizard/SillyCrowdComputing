@@ -1,4 +1,4 @@
-const UPDATE_DELAY = 30000;
+const UPDATE_DELAY = 60 * 1000;
 
 const $ = document.getElementById.bind(document);
 const show = el => el.classList.remove("hidden");
@@ -90,6 +90,9 @@ class API {
 			progress: true,
 			answer: false
 		};
+	}
+	async getChunkSize() {
+		return API.fetchJSON("/chunksize");
 	}
 	async getNewChunk() {
 		const { chunk, minerID } = await API.fetchJSON("/question");
@@ -312,10 +315,10 @@ class Grid {
 
 		ctx.strokeStyle = "black";
 		ctx.lineWidth = progressLW;
-		const x = cx + progressLW / 2;
-		const y = cy + progressLW / 2;
-		const w = chunkWidth - progressLW;
-		const h = chunkHeight - progressLW;
+		const x = cx + (progressLW - defaultLW) / 2;
+		const y = cy + (progressLW - defaultLW) / 2;
+		const w = chunkWidth - progressLW + defaultLW;
+		const h = chunkHeight - progressLW + defaultLW;
 
 		ctx.strokeRect(x, y, w, h);
 
@@ -348,13 +351,13 @@ class Grid {
 	}
 }
 
-const updateStats = (user, explored) => {
+const updateStats = (user, chunkSize, explored) => {
 	const amount = explored.length;
 	const userCount = new Set(explored.map(chunk => chunk.user)).size;
 	const yours = getUserStats(user, explored);
 	const stats = [
 		`${formatNum(amount)} Chunks Explored, ${yours.amount} by you (${yours.percent})`,
-		`${formatNum(amount * 15000 ** 2)} Values Checked!`,
+		`${formatNum(amount * chunkSize ** 2)} Values Checked!`,
 		`${userCount} Users`
 	];
 	$("progress").innerText = stats.join("\n");
@@ -428,11 +431,12 @@ addEventListener("load", async () => {
 		addEventListener("pointermove", handleMouse);
 
 		// view and main loop
+		const chunkSize = await api.getChunkSize();
 		const updateView = async () => {
 			const explored = await api.getExplored();
 			const activeChunk = api.getActiveChunk();
 			grid.update(activeChunk, explored);
-			updateStats(api.user, explored);
+			updateStats(api.user, chunkSize, explored);
 		};
 
 		await updateView();

@@ -15,8 +15,8 @@ console.log(`Switched to ${process.cwd()}`);
 
 // setup & constants
 process.loadEnvFile();
-const CHUNK_SIZE = 15000;
-const MAX_TIMEOUT = 5 * 60 * 1000; // milliseconds
+const CHUNK_SIZE = 35000;
+const MAX_TIMEOUT = 15 * 60 * 1000; // milliseconds
 const CACHE_DURATION = 60 * 60; // seconds
 const CHUNKS_PATH = "./chunks.json";
 const WEB_CLIENT_ROOT = "../WebClient";
@@ -122,6 +122,10 @@ server.route("POST", "/answer", async (writeResponse, { searchParams }, req) => 
 	state.explored.push({ chunk, out, user });
 	await writeState();
 	await writeResponse(null);
+});
+
+server.route("GET", "/chunksize", async writeResponse => {
+	await writeResponse(JSON.stringify(CHUNK_SIZE));
 });
 
 server.route("GET", "/explored", async (writeResponse, { searchParams }) => {
