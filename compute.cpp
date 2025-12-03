@@ -29,6 +29,7 @@ void binarySearch(uint64_t x, uint64_t y, uint64_t lo, uint64_t hi) {
 			hi = mid - 1;
 		} else if (diff == 0) [[unlikely]] {
 			found(x, y, mid);
+			return;
 		}
 	}
 }

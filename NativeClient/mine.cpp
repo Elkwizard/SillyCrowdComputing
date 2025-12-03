@@ -8,6 +8,7 @@
 
 void found(uint64_t x, uint64_t y, uint64_t z) {
 	std::println("{},{},{}", x, y, z);
+	std::println("isCorrect: {}", isCorrect(x, y, z));
 	exit(0);
 }
 
