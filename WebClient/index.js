@@ -224,7 +224,7 @@ class Grid {
 			const stats = getUserStats(user, this.explored);;
 			const amount = stats.percent === "<1%" ? stats.amount : stats.percent;
 			if (answer) {
-				statWrapper.textContent = `THE ANSWER!!! (${user}, ${amount})`;
+				statWrapper.textContent = `(not 😭) THE ANSWER!!! (${user}, ${amount})`;
 			} else {
 				statWrapper.textContent = `${user} (${amount})`;
 			}
